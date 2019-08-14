@@ -9,6 +9,7 @@ authors = ["debris <marek.kotewicz@gmail.com>"]
 keywords = ["sha3", "sha-3", "keccak", "crypto", "kangarootwelve"]
 categories = ["cryptography", "no-std"]
 
+
 [dependencies]
 crunchy = "0.2.2"
 

@@ -38,7 +38,8 @@ macro_rules! impl_constructor {
             Keccak::new(200 - $bits / 4, $delim)
         }
 
-        pub fn $alias(data: &[u8], result: &mut [u8]) {
+        // this is the function we currently call:  tiny_keccak::Keccak::keccak256(&block_data[..], output);
+        pub fn $alias(data: &[u8], result: &mut [u8; 32]) {
             let mut keccak = Keccak::$name();
             keccak.update(data);
             keccak.finalize(result);
@@ -56,16 +57,20 @@ macro_rules! impl_global_alias {
     };
 }
 
+/*
 impl_global_alias!(shake128, 128);
 impl_global_alias!(shake256, 256);
 impl_global_alias!(keccak224, 224);
+*/
 impl_global_alias!(keccak256, 256);
+/*
 impl_global_alias!(keccak384, 384);
 impl_global_alias!(keccak512, 512);
 impl_global_alias!(sha3_224, 224);
 impl_global_alias!(sha3_256, 256);
 impl_global_alias!(sha3_384, 384);
 impl_global_alias!(sha3_512, 512);
+*/
 
 struct Normal;
 
@@ -114,19 +119,29 @@ impl Keccak {
         }
     }
 
+    /*
     impl_constructor!(new_shake128, shake128, 128, 0x1f);
     impl_constructor!(new_shake256, shake256, 256, 0x1f);
     impl_constructor!(new_keccak224, keccak224, 224, 0x01);
+    */
     impl_constructor!(new_keccak256, keccak256, 256, 0x01);
+    /*
     impl_constructor!(new_keccak384, keccak384, 384, 0x01);
     impl_constructor!(new_keccak512, keccak512, 512, 0x01);
     impl_constructor!(new_sha3_224, sha3_224, 224, 0x06);
     impl_constructor!(new_sha3_256, sha3_256, 256, 0x06);
     impl_constructor!(new_sha3_384, sha3_384, 384, 0x06);
     impl_constructor!(new_sha3_512, sha3_512, 512, 0x06);
+    */
 
     pub fn update(&mut self, input: &[u8]) {
         self.state.update(input);
+    }
+
+    pub fn reset(&mut self) {
+        //self.state.reset_offset();
+        //self.state.clear_buffer();
+        self.state.reset();
     }
 
     #[deprecated(
@@ -141,7 +156,7 @@ impl Keccak {
         self.state.keccakf()
     }
 
-    pub fn finalize(self, output: &mut [u8]) {
+    pub fn finalize(&mut self, output: &mut [u8; 32]) {
         self.state.finalize(output);
     }
 
@@ -154,10 +169,11 @@ impl Keccak {
         self.state.offset = 0;
     }
 
-    pub fn squeeze(&mut self, output: &mut [u8]) {
+    pub fn squeeze(&mut self, output: &mut [u8; 32]) {
         self.state.squeeze(output);
     }
 
+    /*
     #[inline]
     pub fn xof(mut self) -> XofReader {
         self.pad();
@@ -169,8 +185,10 @@ impl Keccak {
             offset: 0,
         }
     }
+    */
 }
 
+/*
 pub struct XofReader {
     keccak: KeccakFamily<Normal>,
     offset: usize,
@@ -196,4 +214,5 @@ impl XofReader {
         self.offset = offset + l;
     }
 }
+*/
 
