@@ -314,6 +314,25 @@ impl Buffer {
         */
     }
 
+
+    
+    fn xorinfresh(&mut self, src: &[u8], offset: usize, len: usize) {
+        let buffer: *mut u8 = self.0.as_mut_ptr() as *mut u8;
+        let mut src_ptr = src.as_ptr();
+        unsafe {
+            let mut dst_ptr = buffer.offset(offset as isize);
+
+            for _ in 0..len {
+                //*dst_ptr ^= *src_ptr;
+                // fresh sponge buffer dst_ptr is all zeros. just xor by 0 so don't have to read the memory 
+                *dst_ptr = 0 ^ *src_ptr;
+                src_ptr = src_ptr.offset(1);
+                dst_ptr = dst_ptr.offset(1);
+            }
+        }
+    }
+
+
     fn xorin(&mut self, src: &[u8], offset: usize, len: usize) {
         //unsafe { eth2_debug(); }
         /*
@@ -456,6 +475,7 @@ impl Buffer {
 struct KeccakFamily<P> {
     buffer: Buffer,
     offset: usize,
+    fresh: bool,
     rate: usize,
     delim: u8,
     permutation: core::marker::PhantomData<P>,
@@ -467,6 +487,7 @@ impl <P> Clone for KeccakFamily<P> {
             buffer: self.buffer.clone(),
             offset: self.offset,
             rate: self.rate,
+            fresh: self.fresh,
             delim: self.delim,
             permutation: core::marker::PhantomData,
         }
@@ -480,6 +501,7 @@ impl <P: Permutation> KeccakFamily<P> {
         KeccakFamily {
             buffer: Buffer::default(),
             offset: 0,
+            fresh: true,
             rate,
             delim,
             permutation: core::marker::PhantomData,
@@ -512,10 +534,35 @@ impl <P: Permutation> KeccakFamily<P> {
         let mut rate = self.rate - self.offset;
         let mut offset = self.offset;
         // rate is 136
+
+        // TODO: if this is the first block, then could xor bytes against i32.const 0
+        // instead of xoring against memory filled with zeros
+
+        if self.fresh {
+            self.buffer.xorinfresh(&input[ip..], offset, rate);
+            self.offset = offset + l;
+
+            // if length < (self.rate - self.offset), then we need more bytes to fill up the first 136 byte block
+            // don't set fresh = false yet
+            if l < rate {
+                return;
+            }
+
+            // if we just filled the first block, then set fresh to false and call the keccak function
+            self.fresh = false;
+            self.keccakf();
+            ip += rate;
+            l -= rate;
+            rate = self.rate;
+            offset = 0;
+        }
+
+
         while l >= rate {
             //assert!(input.len() > ip);
             assert!(input.len() > ip); // needed to get rid of a slice_index_order_fail
-            unsafe { eth2_debug(); }
+            // TODO: remove slice length check completely
+            //unsafe { eth2_debug(); }
             self.buffer.xorin(&input[ip..], offset, rate);
             self.keccakf();
             ip += rate;
@@ -524,8 +571,6 @@ impl <P: Permutation> KeccakFamily<P> {
             offset = 0;
         }
 
-        // TODO: if this is the first block, then could xor bytes against i32.const 0
-        // instead of xoring against memory filled with zeros
 
         // Xor in the last block
         assert!(ip < input.len()); // needed to get rid of a slice_index_order_fail
