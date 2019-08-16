@@ -22,6 +22,8 @@
 
 #![no_std]
 
+use core::ptr;
+
 
 extern "C" {
     fn eth2_debug();
@@ -153,7 +155,7 @@ pub fn keccakf(state: &mut [u64; WORDS]) {
     //for (let round = 0; round < 24; round += 2)
     //for round in (0..24).step_by(2) {
     let mut round = 0;
-    while round < 25 {
+    while round < 24 {
         /* Round (round + 0): Axx -> Exx */
 
         Ba = Aba ^ Aga ^ Aka ^ Ama ^ Asa;
@@ -504,7 +506,8 @@ impl Keccak {
     //impl_constructor!(new_keccak256, keccak256, 256, 0x01);
 
     pub fn new_keccak256() -> Keccak {
-        Keccak::new(200 - 256 / 4, 0x01)
+        //Keccak::new(200 - 256 / 4, 0x01)
+        Keccak::new(200 - 256/4, 0x01)
     }
 
     // this is the function we currently call:  tiny_keccak::Keccak::keccak256(&block_data[..], output);
@@ -526,7 +529,7 @@ impl Keccak {
     }
     */
 
-
+    /*
     pub fn keccakf(&mut self) {
         self.state.keccakf()
     }
@@ -538,7 +541,7 @@ impl Keccak {
     pub fn squeeze(&mut self, output: &mut [u8; 32]) {
         self.state.squeeze(output);
     }
-
+    */
 
 
 }
@@ -572,7 +575,9 @@ impl Buffer {
     */
 
 
-    fn setout(&mut self, dst: &mut [u8; 32], offset: usize) {
+    //fn setout(&mut self, dst: &mut [u8; 32], offset: usize) {
+    //fn setout(&mut self, dst: &mut [u64; 4]) {
+    fn setout(&mut self, dst: &mut [u8; 32]) {
         // the offset is always 0 and the len is always 32
         //fn setout(&mut self, dst: &mut [u8; 32], offset: usize, len: usize) {
 
@@ -582,9 +587,14 @@ impl Buffer {
         dst.copy_from_slice(&buffer[0..32]);
         */
 
+
         let buffer: &mut [u8; WORDS * 8] = unsafe { core::mem::transmute(&mut self.0) };
         dst.copy_from_slice(&buffer[0..32]);
 
+
+        //dst.copy_from_slice(&self.0[0..4]);
+
+        //ptr::copy_nonoverlapping(&self.0.as_ptr(), dst.as_mut_ptr(), 32);
 
         //let buffer: *mut u8 = self.0.as_mut_ptr() as *mut u8;
 
@@ -823,7 +833,23 @@ impl KeccakFamily {
 
     fn squeeze(&mut self, output: &mut [u8; 32]) {
         // if the output length is less than the rate, just copy from the buffer
-        self.buffer.setout(output, 0);
+        self.buffer.setout(output);
+        //self.buffer.setout(output.as_mut_ptr() as &mut [u64; 4]);
+
+        //let outbuf: *mut u64 = output.as_mut_ptr() as *mut u64;
+        //outbuf.copy_from_slice(&self.buffer.0[0..4]);
+
+
+        //ptr::copy_nonoverlapping(self.buffer.0.as_ptr(), output.as_mut_ptr(), 32);
+
+        /*
+        let outbuf: *mut u64 = output.as_mut_ptr() as *mut u64;
+        //ptr::copy_nonoverlapping(self.buffer.0.as_ptr(), outbuf, 32);
+        unsafe {
+            ptr::copy_nonoverlapping(self.buffer.0.as_ptr(), outbuf, 4);
+        }
+        */
+
     }
 
     #[no_mangle]
