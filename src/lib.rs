@@ -510,14 +510,11 @@ impl Keccak {
     // this is the function we currently call:  tiny_keccak::Keccak::keccak256(&block_data[..], output);
     pub fn keccak256(data: &[u8], result: &mut [u8; 32]) {
         let mut keccak = Keccak::new_keccak256();
-        keccak.update(data);
-        keccak.finalize(result);
-    }
-
-
-
-    pub fn update(&mut self, input: &[u8]) {
-        self.state.update(input);
+        // speedup:
+        // call self.state.update() directly (inlining it doesn't make a difference)
+        // and delete the self.update() function. (deleting the function is necessary for the speedup, maybe because it has the same name?)
+        keccak.state.update(data);
+        keccak.state.finalize(result);
     }
 
 
@@ -532,11 +529,6 @@ impl Keccak {
 
     pub fn keccakf(&mut self) {
         self.state.keccakf()
-    }
-
-
-    pub fn finalize(&mut self, output: &mut [u8; 32]) {
-        self.state.finalize(output);
     }
 
     pub fn pad(&mut self) {
