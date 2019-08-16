@@ -38,6 +38,7 @@ const PI: [usize; 24] = [
 
 const WORDS: usize = 25;
 
+/*
 macro_rules! keccak_function {
     ($name: ident, $rounds: expr, $rc: expr) => {
 
@@ -123,6 +124,7 @@ macro_rules! keccak_function {
 
     }
 }
+*/
 
 #[cfg(feature = "k12")]
 mod kangaroo;
@@ -130,8 +132,8 @@ mod kangaroo;
 #[cfg(feature = "keccak")]
 mod keccak;
 
-#[cfg(feature = "k12")]
-pub use kangaroo::{k12, KangarooTwelve, keccakf as keccakf12};
+//#[cfg(feature = "k12")]
+//pub use kangaroo::{k12, KangarooTwelve, keccakf as keccakf12};
 
 #[cfg(feature = "keccak")]
 pub use keccak::*;
@@ -162,7 +164,6 @@ impl Buffer {
     #[cfg(target_endian = "little")]
     #[inline]
     fn execute<F: FnOnce(&mut [u8])>(&mut self, offset: usize, len: usize, f: F) {
-        
         // use a wasm call(eth2_debug) to figure out where the slice check is located exactly
         //unsafe { eth2_debug(); }
 
@@ -317,6 +318,7 @@ impl Buffer {
 
     
     fn xorinfresh(&mut self, src: &[u8], offset: usize, len: usize) {
+        //unsafe { eth2_debug(); }
         let buffer: *mut u8 = self.0.as_mut_ptr() as *mut u8;
         let mut src_ptr = src.as_ptr();
         unsafe {
@@ -325,6 +327,7 @@ impl Buffer {
             for _ in 0..len {
                 //*dst_ptr ^= *src_ptr;
                 // fresh sponge buffer dst_ptr is all zeros. just xor by 0 so don't have to read the memory 
+                //unsafe { eth2_debug(); }
                 *dst_ptr = 0 ^ *src_ptr;
                 src_ptr = src_ptr.offset(1);
                 dst_ptr = dst_ptr.offset(1);
@@ -535,10 +538,17 @@ impl <P: Permutation> KeccakFamily<P> {
         let mut offset = self.offset;
         // rate is 136
 
+        // buffer is 200 bytes but rate is 136.. how does that work?
+
+
         // TODO: if this is the first block, then could xor bytes against i32.const 0
         // instead of xoring against memory filled with zeros
 
         if self.fresh {
+            // this is xor'ing against zeros, which is equivalent to just copying the memory
+            // instead of copying the memory, it should keep a pointer to the fresh block
+            // then on the second block, it uses i32.load8_u to read each byte from the first block
+            // and xor against the byte in the second block
             self.buffer.xorinfresh(&input[ip..], offset, rate);
             self.offset = offset + l;
 
