@@ -575,18 +575,12 @@ impl Buffer {
     */
 
 
+    /*
     //fn setout(&mut self, dst: &mut [u8; 32], offset: usize) {
     //fn setout(&mut self, dst: &mut [u64; 4]) {
     fn setout(&mut self, dst: &mut [u8; 32]) {
         // the offset is always 0 and the len is always 32
         //fn setout(&mut self, dst: &mut [u8; 32], offset: usize, len: usize) {
-
-        /*
-        // this works
-        let buffer: &mut [u8; WORDS * 8] = unsafe { core::mem::transmute(&mut self.0) };
-        dst.copy_from_slice(&buffer[0..32]);
-        */
-
 
         let buffer: &mut [u8; WORDS * 8] = unsafe { core::mem::transmute(&mut self.0) };
         dst.copy_from_slice(&buffer[0..32]);
@@ -598,14 +592,12 @@ impl Buffer {
 
         //let buffer: *mut u8 = self.0.as_mut_ptr() as *mut u8;
 
-        /*
-        let mut buffer: [u8; WORDS * 8] = unsafe { core::mem::transmute_copy(&mut self.0) };
-        dst[..len].copy_from_slice(&buffer[offset..][..len]);
-        */
+        //let mut buffer: [u8; WORDS * 8] = unsafe { core::mem::transmute_copy(&mut self.0) };
+        //dst[..len].copy_from_slice(&buffer[offset..][..len]);
     }
+    */
 
 
-    
     fn xorinfresh(&mut self, src: &[u8], offset: usize, len: usize) {
         //unsafe { eth2_debug(); }
         let buffer: *mut u8 = self.0.as_mut_ptr() as *mut u8;
@@ -663,39 +655,34 @@ impl Buffer {
 
     }
 
+    /*
     fn pad(&mut self, offset: usize, delim: u8, rate: usize) {
         //self.execute(offset, 1, |buff| buff[0] ^= delim);
         //self.execute(rate - 1, 1, |buff| buff[0] ^= 0x80);
 
-        /*
-        fn execute<F: FnOnce(&mut [u8])>(&mut self, offset: usize, len: usize, f: F) {
-        let buffer: &mut [u8; WORDS * 8] = unsafe { core::mem::transmute(&mut self.0) };
-        f(&mut buffer[offset..][..len]);
-        */
-
-        /*
         // this works
-        let buffer1: &mut [u8; WORDS * 8] = unsafe { core::mem::transmute(&mut self.0) };
+        //let buffer1: &mut [u8; WORDS * 8] = unsafe { core::mem::transmute(&mut self.0) };
+        //let mut buf1 = &mut buffer1[offset..][..1];
+        //buf1[0] ^= delim;
 
-        let mut buf1 = &mut buffer1[offset..][..1];
-        buf1[0] ^= delim;
-        */
 
         //let mut buffer1: [u8; WORDS * 8] = self.0.as_mut_ptr();
         //                                   ^^^^^^^^^^^^^^^^^^^ expected array of 200 elements, found *-ptr
         // this is correct
-        let buffer1: *mut u8 = self.0.as_mut_ptr() as *mut u8;
-        unsafe {
-            let mut buf1 = buffer1.offset(offset as isize);
-            *buf1 ^= delim;
-        }
-        
-        unsafe {
-            let mut buf2 = buffer1.offset(135);
-            *buf2 ^= 0x80;
-        }
+        //let buffer1: *mut u8 = self.0.as_mut_ptr() as *mut u8;
+        //unsafe {
+        //    let mut buf1 = buffer1.offset(offset as isize);
+        //    *buf1 ^= delim;
+        //}
+        //
+        //unsafe {
+        //    let mut buf2 = buffer1.offset(135);
+        //    *buf2 ^= 0x80;
+        //}
 
     }
+    */
+
 }
 
 
@@ -828,27 +815,45 @@ impl KeccakFamily {
     }
 
     fn pad(&mut self) {
-        self.buffer.pad(self.offset, self.delim, self.rate);
+
+        //self.buffer.pad(self.offset, self.delim, self.rate);
+
+        let buffer1: *mut u8 = self.buffer.0.as_mut_ptr() as *mut u8;
+        unsafe {
+            let mut buf1 = buffer1.offset(self.offset as isize);
+            *buf1 ^= self.delim;
+        }
+
+        unsafe {
+            let mut buf2 = buffer1.offset(135);
+            *buf2 ^= 0x80;
+        }
+
     }
 
     fn squeeze(&mut self, output: &mut [u8; 32]) {
         // if the output length is less than the rate, just copy from the buffer
-        self.buffer.setout(output);
+        //self.buffer.setout(output);
         //self.buffer.setout(output.as_mut_ptr() as &mut [u64; 4]);
 
         //let outbuf: *mut u64 = output.as_mut_ptr() as *mut u64;
         //outbuf.copy_from_slice(&self.buffer.0[0..4]);
 
+        let buffer: &mut [u8; WORDS * 8] = unsafe { core::mem::transmute(&mut self.buffer.0) };
+        output.copy_from_slice(&buffer[0..32]);
 
         //ptr::copy_nonoverlapping(self.buffer.0.as_ptr(), output.as_mut_ptr(), 32);
 
+
         /*
+        // this may not be a speedup
         let outbuf: *mut u64 = output.as_mut_ptr() as *mut u64;
-        //ptr::copy_nonoverlapping(self.buffer.0.as_ptr(), outbuf, 32);
         unsafe {
             ptr::copy_nonoverlapping(self.buffer.0.as_ptr(), outbuf, 4);
         }
         */
+
+
 
     }
 
